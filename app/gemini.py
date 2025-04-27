@@ -1,3 +1,151 @@
+# from datetime import datetime
+# from pymongo.collection import Collection
+# from bson import ObjectId
+# from bson.errors import InvalidId
+# from collections import defaultdict
+
+# def time_range_to_hours(time_range: str) -> float:
+#     start_str, end_str = time_range.split(" - ")
+#     start = datetime.strptime(start_str, "%H:%M")
+#     end = datetime.strptime(end_str, "%H:%M")
+#     duration = (end - start).seconds / 3600
+#     return round(duration, 2)
+
+# def generate_user_plan_with_gemini(users_collection: Collection, subjects_collection: Collection, user_id: str):
+#     try:
+#         user_obj_id = ObjectId(user_id)
+#     except InvalidId:
+#         raise ValueError("Invalid userId format. Expected a valid MongoDB ObjectId.")
+
+#     # Fetch user document and daily learning slots
+#     user_doc = users_collection.find_one({"_id": user_obj_id})
+#     if not user_doc:
+#         raise ValueError("User not found.")
+
+#     raw_learning_slots = []
+#     for routine in user_doc.get("dailyRoutine", []):
+#         if routine.get("action") == "learning":
+#             time_range = routine.get("time")
+#             if time_range:
+#                 raw_learning_slots.append(time_range)
+
+#     if not raw_learning_slots:
+#         return {"message": "No learning slots found for the user."}
+
+#     learning_slots = [
+#         {"time": slot, "duration": time_range_to_hours(slot)}
+#         for slot in raw_learning_slots
+#     ]
+
+#     # Fetch user subjects and exam details
+#     today = datetime.today().date()
+#     user_subjects = list(subjects_collection.find({"userId": user_obj_id}))
+
+#     # Sort subjects by exam date
+#     user_subjects = sorted(
+#         user_subjects,
+#         key=lambda x: (x.get("examDate") or datetime.max)
+#     )
+
+#     study_plan = []  # Final study plan list
+#     day = 1  # Day counter
+
+#     urgent_subjects = []  # Exams tomorrow
+#     normal_subjects = []  # Exams in future
+
+#     total_available_hours = sum(slot["duration"] for slot in learning_slots)
+
+#     for subject in user_subjects:
+#         exam_date = subject.get("examDate")
+#         difficulty = subject.get("examDifficulty", "MEDIUM").upper()
+#         topics = subject.get("topics", [])
+#         subject_name = subject.get("subjectName", "Unknown Subject")
+
+#         if not topics or not exam_date:
+#             continue
+
+#         exam_date = exam_date.date() if isinstance(exam_date, datetime) else exam_date
+#         days_left = (exam_date - today).days - 1
+
+#         if days_left <= 0:
+#             continue
+
+#         if days_left == 1:
+#             urgent_subjects.append({
+#                 "name": subject_name,
+#                 "topics": topics,
+#                 "difficulty": difficulty
+#             })
+#         else:
+#             normal_subjects.append({
+#                 "name": subject_name,
+#                 "topics": topics,
+#                 "difficulty": difficulty,
+#                 "days_left": days_left
+#             })
+
+#     # Handle urgent subjects (exams tomorrow)
+#     if urgent_subjects:
+#         total_topics = sum(len(sub["topics"]) for sub in urgent_subjects)
+#         if total_topics > 0:
+#             time_per_topic = round(total_available_hours / total_topics, 2)
+#             slot_index = 0
+
+#             for subject in urgent_subjects:
+#                 for topic in subject["topics"]:
+#                     if slot_index >= len(learning_slots):
+#                         slot_index = 0  # Cycle if more topics than slots
+
+#                     slot = learning_slots[slot_index]
+#                     allocated_time = min(time_per_topic, slot["duration"])
+
+#                     study_plan.append(
+#                         f"Day {day}: Subject {subject['name']} - {topic['name']} in {slot['time']}, allocated {allocated_time} hrs"
+#                     )
+
+#                     slot["duration"] -= allocated_time
+#                     if slot["duration"] <= 0:
+#                         slot_index += 1
+
+#                     day += 1
+
+#     # Handle normal subjects
+#     for subject in normal_subjects:
+#         difficulty = subject["difficulty"]
+#         total_hours = {"EASY": 1, "MEDIUM": 2, "HARD": 3}.get(difficulty, 2)
+#         study_time_per_topic = total_hours / len(subject["topics"])
+
+#         for topic in subject["topics"]:
+#             scheduled = False
+#             for _ in range(subject["days_left"]):
+#                 for slot in learning_slots:
+#                     if study_time_per_topic <= slot["duration"]:
+#                         allocated_time = min(study_time_per_topic, slot["duration"])
+
+#                         study_plan.append(
+#                             f"Day {day}: Subject {subject['name']} - {topic['name']} in {slot['time']}, allocated {allocated_time} hrs"
+#                         )
+
+#                         slot["duration"] -= allocated_time
+#                         day += 1
+#                         scheduled = True
+#                         break
+#                 if scheduled:
+#                     break
+#             if not scheduled:
+#                 study_plan.append(
+#                     f"Day {day}: Could not fit topic '{topic['name']}' from '{subject['name']}' in available slots."
+#                 )
+#                 day += 1
+
+#     return {
+#         "user_id": str(user_obj_id),
+#         "learning_times": [slot["time"] for slot in learning_slots],
+#         "study_plan": study_plan
+#     }
+
+
+
 from datetime import datetime
 from pymongo.collection import Collection
 from bson import ObjectId

@@ -2,8 +2,8 @@
 from fastapi import FastAPI, HTTPException, Query
 # Import database functions and the function to generate the study plan
 from app.db import get_db
-from app.generate_plan_logic import generate_user_plan
-
+# from app.generate_plan_logic import generate_user_plan
+from app.gemini import generate_user_plan_with_gemini
 # Create a FastAPI instance to define the API
 app = FastAPI()
 
@@ -18,7 +18,7 @@ def generate_plan(userId: str = Query(...)):  # Takes userId as a query paramete
 
     try:
         # Call the function to generate the study plan
-        result = generate_user_plan(users_collection, subjects_collection, userId)
+        result = generate_user_plan_with_gemini(users_collection, subjects_collection, userId)
         
         # If no study plan is generated, return a message
         if not result["study_plan"]:
