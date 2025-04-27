@@ -7,3 +7,4 @@ crud.py
 models.py
 services.py
 utils.py
+__pycache__
